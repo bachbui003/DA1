@@ -1,7 +1,6 @@
 package com.example.ECM.controller;
 
-import com.example.ECM.service.VNPayService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.example.ECM.service.Impl.VNPayService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,39 +14,35 @@ public class VNPayController {
 
     private final VNPayService vnPayService;
 
-    // ✅ Sử dụng Constructor Injection thay vì @Autowired trên field
     public VNPayController(VNPayService vnPayService) {
         this.vnPayService = vnPayService;
     }
 
-    // ✅ 1. Tạo URL Thanh Toán VNPay
+    // ✅ Tạo URL Thanh Toán VNPay từ JSON
     @PostMapping("/submitOrder")
-    public ResponseEntity<Map<String, String>> submitOrder(
-            @RequestParam("amount") int orderTotal,
-            @RequestParam("orderInfo") String orderInfo,
-            HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> submitOrder(@RequestBody Map<String, Object> requestBody) {
+        int orderTotal = (Integer) requestBody.get("amount");
+        String orderInfo = (String) requestBody.get("orderInfo");
+        String baseUrl = "http://localhost:8080"; // URL Backend xử lý
 
-        String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
         String vnpayUrl = vnPayService.createOrder(orderTotal, orderInfo, baseUrl);
 
-        // ✅ Trả về URL để frontend điều hướng
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", vnpayUrl);
-
         return ResponseEntity.ok(response);
     }
 
-    // ✅ 2. Xử lý phản hồi từ VNPay
-    @GetMapping("/vnpay-payment")
-    public ResponseEntity<Map<String, Object>> processVNPayPayment(HttpServletRequest request) {
-        int paymentStatus = vnPayService.orderReturn(request);
+    // ✅ Xử lý phản hồi từ VNPay
+    @PostMapping("/vnpay-payment")
+    public ResponseEntity<Map<String, Object>> processVNPayPayment(@RequestBody Map<String, Object> requestBody) {
+        int paymentStatus = vnPayService.orderReturn(requestBody);
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", paymentStatus == 1 ? "SUCCESS" : "FAILED");
-        response.put("orderId", request.getParameter("vnp_OrderInfo"));
-        response.put("totalPrice", Long.parseLong(request.getParameter("vnp_Amount")) / 100); // VNPay trả về số tiền nhân 100
-        response.put("paymentTime", request.getParameter("vnp_PayDate"));
-        response.put("transactionId", request.getParameter("vnp_TransactionNo"));
+        response.put("orderId", requestBody.get("vnp_OrderInfo"));
+        response.put("totalPrice", ((Number) requestBody.get("vnp_Amount")).longValue() / 100);
+        response.put("paymentTime", requestBody.get("vnp_PayDate"));
+        response.put("transactionId", requestBody.get("vnp_TransactionNo"));
 
         return ResponseEntity.ok(response);
     }
