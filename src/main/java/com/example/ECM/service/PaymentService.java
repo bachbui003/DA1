@@ -8,4 +8,6 @@ public interface PaymentService {
     Payment createPayment(Order order);
     void updatePaymentStatus(String transactionId, PaymentStatus status, String vnpTransactionId);
     Payment getPaymentByTransactionId(String transactionId);
+    void savePayment(Payment payment);
+
 }

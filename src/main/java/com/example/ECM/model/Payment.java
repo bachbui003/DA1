@@ -37,13 +37,16 @@ public class Payment {
     private LocalDateTime paymentDate;
 
     @Column(name = "transaction_id", unique = true)
-    private String transactionId; // Thêm thuộc tính này
+    private String transactionId;
 
     @Column(name = "vnp_transaction_no")
-    private String vnpTransactionNo; // Thêm mã giao dịch VNPay
+    private String vnpTransactionNo;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "vnp_transaction_id")
+    private String vnpTransactionId;
 
     @PrePersist
     protected void onCreate() {
@@ -53,4 +56,9 @@ public class Payment {
     public Long getOrderId() {
         return order != null ? order.getId() : null;
     }
+
+    public void setVnpTransactionId(String vnpTransactionId) {
+        this.vnpTransactionId = vnpTransactionId;
+    }
+
 }

@@ -53,6 +53,8 @@ public class PaymentController {
             // Tìm payment theo mã giao dịch
             Payment payment = paymentService.getPaymentByTransactionId(transactionId);
             if (payment != null) {
+                payment.setVnpTransactionId(vnpTransactionId); // Lưu vnpTransactionId
+                paymentService.savePayment(payment); // Lưu vào DB
                 Long orderId = payment.getOrder().getId();
                 System.out.println("Xóa đơn hàng có ID: " + orderId);
                 orderService.deleteOrder(orderId); // Xóa đơn hàng
@@ -63,5 +65,4 @@ public class PaymentController {
             return "Thanh toán thất bại";
         }
     }
-
 }
