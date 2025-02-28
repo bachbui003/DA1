@@ -29,21 +29,18 @@ public class Payment {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Column(nullable = false)
-    private String paymentStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false)
+    private PaymentStatus paymentStatus;
 
     @Column(name = "payment_date", nullable = false)
     private LocalDateTime paymentDate;
 
-    @Column(name = "payment_code", nullable = false)
-    private String paymentCode;
-
-    @Column(nullable = false)
-    private String status; // Thêm trạng thái thanh toán
-
-
     @Column(name = "transaction_id", unique = true)
     private String transactionId; // Thêm thuộc tính này
+
+    @Column(name = "vnp_transaction_no")
+    private String vnpTransactionNo; // Thêm mã giao dịch VNPay
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -51,5 +48,9 @@ public class Payment {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getOrderId() {
+        return order != null ? order.getId() : null;
     }
 }

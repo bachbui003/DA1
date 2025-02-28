@@ -2,9 +2,11 @@ package com.example.ECM.controller;
 
 import com.example.ECM.model.Order;
 import com.example.ECM.model.Payment;
+import com.example.ECM.model.PaymentStatus;
 import com.example.ECM.service.OrderService;
 import com.example.ECM.service.PaymentService;
 import com.example.ECM.service.Impl.VNPayService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,13 +34,34 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay-return")
-    public String paymentReturn(@RequestParam Map<String, String> params) {
-        int result = vnPayService.orderReturn(null);
+    public String paymentReturn(HttpServletRequest request, @RequestParam Map<String, String> params) {
+        System.out.println("Các tham số trả về từ VNPay:");
+        params.forEach((key, value) -> System.out.println(key + ": " + value));
+        System.out.println("vnp_SecureHash: " + request.getParameter("vnp_SecureHash"));
+        System.out.println("vnp_ResponseCode: " + request.getParameter("vnp_ResponseCode"));
+        System.out.println("vnp_TransactionStatus: " + request.getParameter("vnp_TransactionStatus"));
+
+        int result = vnPayService.orderReturn(request);
+        System.out.println("Kết quả kiểm tra giao dịch: " + result);
+
         if (result == 1) {
-            paymentService.updatePaymentStatus(params.get("vnp_TxnRef"), "PAID");
-            return "Thanh toán thành công";
+            String transactionId = params.get("vnp_TxnRef");
+            String vnpTransactionId = params.get("vnp_TransactionNo");
+            paymentService.updatePaymentStatus(transactionId, PaymentStatus.SUCCESS, vnpTransactionId);
+            System.out.println("Cập nhật trạng thái thanh toán: SUCCESS");
+
+            // Tìm payment theo mã giao dịch
+            Payment payment = paymentService.getPaymentByTransactionId(transactionId);
+            if (payment != null) {
+                Long orderId = payment.getOrder().getId();
+                System.out.println("Xóa đơn hàng có ID: " + orderId);
+                orderService.deleteOrder(orderId); // Xóa đơn hàng
+            }
+            return "Thanh toán thành công và đơn hàng đã bị xóa";
         } else {
+            System.out.println("Cập nhật trạng thái thanh toán: FAILED");
             return "Thanh toán thất bại";
         }
     }
+
 }
