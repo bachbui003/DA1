@@ -1,41 +1,44 @@
 package com.example.ECM.controller;
 
-import com.example.ECM.dto.PaymentDTO;
+import com.example.ECM.model.Order;
+import com.example.ECM.model.Payment;
+import com.example.ECM.service.OrderService;
 import com.example.ECM.service.PaymentService;
+import com.example.ECM.service.Impl.VNPayService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/payments")
+@RequestMapping("/api/payment")
 public class PaymentController {
 
     @Autowired
     private PaymentService paymentService;
 
-    // API tạo thanh toán
-    @PostMapping("/create")
-    public ResponseEntity<PaymentDTO> createPayment(@RequestParam Long orderId, @RequestParam int amount) {
-        PaymentDTO payment = paymentService.createPayment(orderId, amount);
-        return ResponseEntity.ok(payment);
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private VNPayService vnPayService;
+
+    @PostMapping("/create/{orderId}")
+    public String createPayment(@PathVariable Long orderId) {
+        Order order = orderService.getOrderById(orderId);
+        Payment payment = paymentService.createPayment(order);
+        String returnUrl = "http://localhost:8080/api/payment/vnpay-return";
+        return vnPayService.createOrder(order.getTotalPrice().intValue(), "Thanh toán đơn hàng", returnUrl);
     }
 
-    // API cập nhật trạng thái thanh toán
-    @PutMapping("/update-status")
-    public ResponseEntity<Map<String, String>> updatePaymentStatus(@RequestParam String paymentCode, @RequestParam String status) {
-        paymentService.updatePaymentStatus(paymentCode, status);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Cập nhật trạng thái thành công");
-        return ResponseEntity.ok(response);
-    }
-
-    // API lấy thông tin thanh toán
-    @GetMapping("/{paymentCode}")
-    public ResponseEntity<PaymentDTO> getPayment(@PathVariable String paymentCode) {
-        PaymentDTO payment = paymentService.getPaymentByCode(paymentCode);
-        return ResponseEntity.ok(payment);
+    @GetMapping("/vnpay-return")
+    public String paymentReturn(@RequestParam Map<String, String> params) {
+        int result = vnPayService.orderReturn(null);
+        if (result == 1) {
+            paymentService.updatePaymentStatus(params.get("vnp_TxnRef"), "PAID");
+            return "Thanh toán thành công";
+        } else {
+            return "Thanh toán thất bại";
+        }
     }
 }
