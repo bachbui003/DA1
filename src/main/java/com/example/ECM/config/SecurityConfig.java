@@ -43,28 +43,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable())  // Tắt CSRF vì chúng ta sử dụng xác thực không trạng thái (JWT)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/user/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("ADMIN")
-                        .requestMatchers("/api/cart/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/cart/all").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/payments/submitOrder").hasAnyRole("USER", "ADMIN")
-                        // ✅ Cho phép USER & ADMIN truy cập API đặt hàng
-                        .requestMatchers("/api/orders/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/v1/payments/vnpay-payment").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/**").permitAll()  // Cho phép tất cả người dùng truy cập vào các API auth
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()  // Cho phép xem sản phẩm cho tất cả người dùng
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể thêm sản phẩm
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể sửa sản phẩm
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xóa sản phẩm
+                        .requestMatchers(HttpMethod.PUT, "/api/user/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể sửa thông tin người dùng
+                        .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xóa người dùng
+                        .requestMatchers("/api/cart/**").hasAnyRole("USER", "ADMIN")  // USER & ADMIN đều có thể truy cập giỏ hàng
+                        .requestMatchers("/api/cart/all").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xem tất cả giỏ hàng
+                        .requestMatchers("/api/v1/payments/submitOrder").hasAnyRole("USER", "ADMIN")  // USER & ADMIN có thể đặt hàng
+                        .requestMatchers("/api/orders/**").hasAnyRole("USER", "ADMIN")  // USER & ADMIN có thể xem đơn hàng
+                        .requestMatchers("/api/v1/payments/vnpay-payment").permitAll()  // Cho phép callback từ VNPay
+
+                        .anyRequest().authenticated()  // Các yêu cầu khác cần phải xác thực
                 )
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))  // Quản lý session không trạng thái cho JWT
+                .authenticationProvider(authenticationProvider())  // Sử dụng provider xác thực tùy chỉnh
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)  // Thêm JWT filter trước UsernamePasswordAuthenticationFilter
                 .build();
     }
-
-
 }

@@ -47,7 +47,10 @@ public class PaymentController {
         if (result == 1) {
             String transactionId = params.get("vnp_TxnRef");
             String vnpTransactionId = params.get("vnp_TransactionNo");
-            paymentService.updatePaymentStatus(transactionId, PaymentStatus.SUCCESS, vnpTransactionId);
+            String vnpTransactionStatus = request.getParameter("vnp_TransactionStatus");
+            Long vnpAmount = Long.valueOf(params.get("vnp_Amount"));
+
+            paymentService.updatePaymentStatus(transactionId, PaymentStatus.SUCCESS, vnpTransactionStatus, vnpTransactionId, vnpAmount);
             System.out.println("Cập nhật trạng thái thanh toán: SUCCESS");
 
             // Tìm payment theo mã giao dịch
@@ -61,8 +64,9 @@ public class PaymentController {
             }
             return "Thanh toán thành công và đơn hàng đã bị xóa";
         } else {
-            System.out.println("Cập nhật trạng thái thanh toán: FAILED");
+            System.out.println("Cập nhật trạng thái thanh toán: FAILED" + PaymentStatus.FAILED);
             return "Thanh toán thất bại";
         }
     }
+
 }

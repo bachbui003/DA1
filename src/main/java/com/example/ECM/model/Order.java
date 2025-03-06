@@ -25,6 +25,7 @@ public class Order {
 
     private BigDecimal totalPrice;
     private String status;
+    private OrderStatus orderStatus;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems;
