@@ -15,6 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -41,17 +46,33 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:4200")); // Cho phép Angular call API
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())  // Tắt CSRF vì chúng ta sử dụng xác thực không trạng thái (JWT)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // Bật CORS
                 .authorizeHttpRequests(auth -> auth
+                                .requestMatchers("/api/products/{id}").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()  // Cho phép tất cả người dùng truy cập vào các API auth
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()  // Cho phép xem sản phẩm cho tất cả người dùng
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể thêm sản phẩm
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể sửa sản phẩm
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xóa sản phẩm
+//                        .requestMatchers("/api/products/all/**").permitAll()  // Cho phép xem sản phẩm cho tất cả người dùng
+//                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể thêm sản phẩm
+//                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể sửa sản phẩm
+//                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xóa sản phẩm
                         .requestMatchers(HttpMethod.PUT, "/api/user/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể sửa thông tin người dùng
                         .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xóa người dùng
+                                .requestMatchers("/api/categories").permitAll()
                         .requestMatchers("/api/cart/**").hasAnyRole("USER", "ADMIN")  // USER & ADMIN đều có thể truy cập giỏ hàng
                         .requestMatchers("/api/cart/all").hasRole("ADMIN")  // Chỉ ADMIN mới có thể xem tất cả giỏ hàng
                         .requestMatchers("/api/v1/payments/submitOrder").hasAnyRole("USER", "ADMIN")  // USER & ADMIN có thể đặt hàng

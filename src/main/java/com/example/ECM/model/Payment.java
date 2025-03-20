@@ -18,34 +18,34 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false)
+    @Column(name = "payment_status", nullable = false, length = 20)
     private PaymentStatus paymentStatus;
 
     @Column(name = "payment_date", nullable = false)
     private LocalDateTime paymentDate;
 
-    @Column(name = "transaction_id", unique = true)
+    @Column(name = "transaction_id", unique = true, length = 50)
     private String transactionId;
 
-    @Column(name = "vnp_transaction_no")
+    @Column(name = "vnp_transaction_no", length = 50)
     private String vnpTransactionNo;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "vnp_transaction_id")
+    @Column(name = "vnp_transaction_id", length = 50)
     private String vnpTransactionId;
 
     @PrePersist
@@ -56,10 +56,4 @@ public class Payment {
     public Long getOrderId() {
         return order != null ? order.getId() : null;
     }
-
-    public void setVnpTransactionId(String vnpTransactionId) {
-        this.vnpTransactionId = vnpTransactionId;
-    }
-
-
 }

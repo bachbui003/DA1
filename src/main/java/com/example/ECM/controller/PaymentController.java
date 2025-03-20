@@ -50,23 +50,27 @@ public class PaymentController {
             String vnpTransactionStatus = request.getParameter("vnp_TransactionStatus");
             Long vnpAmount = Long.valueOf(params.get("vnp_Amount"));
 
+            // Cập nhật trạng thái thanh toán thành SUCCESS
             paymentService.updatePaymentStatus(transactionId, PaymentStatus.SUCCESS, vnpTransactionStatus, vnpTransactionId, vnpAmount);
-            System.out.println("Cập nhật trạng thái thanh toán: SUCCESS");
+            System.out.println("Cập nhật trạng thái thanh toán: " + PaymentStatus.SUCCESS);
 
-            // Tìm payment theo mã giao dịch
+            // Lấy thông tin payment từ database
             Payment payment = paymentService.getPaymentByTransactionId(transactionId);
             if (payment != null) {
                 payment.setVnpTransactionId(vnpTransactionId); // Lưu vnpTransactionId
                 paymentService.savePayment(payment); // Lưu vào DB
+
+                // Xóa đơn hàng nếu thanh toán thành công
                 Long orderId = payment.getOrder().getId();
                 System.out.println("Xóa đơn hàng có ID: " + orderId);
                 orderService.deleteOrder(orderId); // Xóa đơn hàng
             }
             return "Thanh toán thành công và đơn hàng đã bị xóa";
         } else {
-            System.out.println("Cập nhật trạng thái thanh toán: FAILED" + PaymentStatus.FAILED);
+            // Cập nhật trạng thái thanh toán thành FAILED
+            paymentService.updatePaymentStatus(params.get("vnp_TxnRef"), PaymentStatus.FAILED, null, null, 0L);
+            System.out.println("Cập nhật trạng thái thanh toán: " + PaymentStatus.FAILED);
             return "Thanh toán thất bại";
         }
     }
-
 }

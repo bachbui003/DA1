@@ -1,6 +1,7 @@
 package com.example.ECM.service.Impl;
 
 import com.example.ECM.config.VNPayConfig;
+import com.example.ECM.model.VNPayResponseCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static com.example.ECM.model.VNPayResponseCode.*;
 
 @Service
 public class VNPayService {
@@ -81,27 +84,36 @@ public class VNPayService {
         String vnp_SecureHash = request.getParameter("vnp_SecureHash");
         fields.remove("vnp_SecureHashType");
         fields.remove("vnp_SecureHash");
-        String signValue = VNPayConfig.hashAllFields(fields);
 
-        // Thêm dòng log để kiểm tra giá trị của chữ ký và mã phản hồi
-        System.out.println("vnp_SecureHash: " + vnp_SecureHash);
-        System.out.println("signValue: " + signValue);
+        String signValue = VNPayConfig.hashAllFields(fields);
+        System.out.println("vnp_SecureHash từ VNPay: " + vnp_SecureHash);
+        System.out.println("Chữ ký tính toán: " + signValue);
 
         if (vnp_SecureHash != null && signValue.equals(vnp_SecureHash)) {
             String responseCode = request.getParameter("vnp_ResponseCode");
+            VNPayResponseCode vnpResponse = VNPayResponseCode.fromCode(responseCode);
 
-            // Thêm dòng log để kiểm tra mã phản hồi từ VNPay
-            System.out.println("Mã phản hồi từ VNPay: " + responseCode);
+            System.out.println("Mã phản hồi từ VNPay: " + vnpResponse);
 
-            if ("00".equals(responseCode)) {
-                return 1; // Thanh toán thành công
-            } else {
-                System.out.println("Lỗi trả về: " + responseCode);
-                return 0; // Thanh toán thất bại
+            switch (vnpResponse) {
+                case SUCCESS:
+                    return 1; // Thành công
+                case USER_CANCELLED:
+                    System.out.println("Người dùng đã hủy giao dịch.");
+                    return 0;
+                case TRANSACTION_FAILED:
+                    System.out.println("Giao dịch thất bại.");
+                    return 0;
+                case INVALID_SIGNATURE:
+                    System.out.println("Chữ ký không hợp lệ.");
+                    return -1;
+                default:
+                    System.out.println("Lỗi không xác định từ VNPay: " + responseCode);
+                    return -2;
             }
         } else {
             System.out.println("Chữ ký không hợp lệ.");
-            return -1; // Lỗi bảo mật
+            return -1;
         }
     }
 

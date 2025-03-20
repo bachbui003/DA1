@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -34,10 +35,10 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequest request) {
         try {
             if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-                return ResponseEntity.badRequest().body("Tên người dùng đã tồn tại");
+                return ResponseEntity.badRequest().body(Map.of("message", "Tên người dùng đã tồn tại"));
             }
             if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-                return ResponseEntity.badRequest().body("Email đã tồn tại");
+                return ResponseEntity.badRequest().body(Map.of("message", "Email đã tồn tại"));
             }
 
             // Nếu không gửi role, mặc định là USER
@@ -45,7 +46,7 @@ public class AuthController {
 
             // Kiểm tra role hợp lệ
             if (role != Role.USER && role != Role.ADMIN) {
-                return ResponseEntity.badRequest().body("Role không hợp lệ. Giá trị hợp lệ: USER, ADMIN");
+                return ResponseEntity.badRequest().body(Map.of("message", "Role không hợp lệ. Giá trị hợp lệ: USER, ADMIN"));
             }
 
             User user = new User();
@@ -60,13 +61,15 @@ public class AuthController {
             userRepository.save(user);
 
             logger.info("Người dùng {} đã đăng ký thành công với role {}", request.getUsername(), role);
-            return ResponseEntity.ok("Người dùng đăng ký thành công với role: " + role);
+            return ResponseEntity.ok(Map.of("message", "Người dùng đăng ký thành công với role: " + role));
 
         } catch (Exception e) {
             logger.error("Lỗi trong quá trình đăng ký người dùng: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã có lỗi xảy ra trong quá trình đăng ký người dùng.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Đã có lỗi xảy ra trong quá trình đăng ký người dùng."));
         }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody @Valid AuthRequest request) {
@@ -106,7 +109,7 @@ public class AuthController {
         try {
             Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
             if (userOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("Email không tồn tại trong hệ thống.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email không tồn tại trong hệ thống.");
             }
 
             String otp = otpService.generateOtp(request.getEmail());
@@ -120,32 +123,41 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         try {
+            // Kiểm tra OTP
             if (!otpService.validateOtp(request.getEmail(), request.getOtp())) {
-                return ResponseEntity.badRequest().body("OTP không hợp lệ.");
+                return ResponseEntity.badRequest().body("OTP không hợp lệ hoặc đã hết hạn.");
             }
 
-            User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+            // Lấy thông tin User từ DB
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Email không tồn tại."));
 
+            // Kiểm tra mật khẩu mới có trùng với mật khẩu cũ không
             if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
                 return ResponseEntity.badRequest().body("Mật khẩu mới không được trùng với mật khẩu cũ.");
             }
 
+            // Kiểm tra độ dài mật khẩu mới
             if (request.getNewPassword().length() < 6) {
                 return ResponseEntity.badRequest().body("Mật khẩu mới phải có ít nhất 6 ký tự.");
             }
 
+            // Mã hóa và cập nhật mật khẩu mới
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
             userRepository.save(user);
+
+            // Xóa OTP sau khi đặt lại thành công
             otpService.clearOtp(request.getEmail());
 
-            logger.info("Đặt lại mật khẩu thành công cho người dùng với email: {}", request.getEmail());
+            logger.info("Đặt lại mật khẩu thành công cho: {}", request.getEmail());
             return ResponseEntity.ok("Mật khẩu đã được đặt lại thành công.");
         } catch (Exception e) {
             logger.error("Lỗi trong quá trình reset mật khẩu: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã có lỗi xảy ra trong quá trình reset mật khẩu.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đã xảy ra lỗi trong quá trình đặt lại mật khẩu.");
         }
     }
 }

@@ -20,6 +20,8 @@ public class Category {
     private Long id;
 
     private String name;
+    @Column(nullable = true, length = 255)
+    private String icon; // Lưu đường dẫn ảnh hoặc class icon
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("category") // Tránh lặp vô hạn với Product

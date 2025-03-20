@@ -15,7 +15,7 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+@CrossOrigin(origins = "http://localhost:4200") // Cho phép Angular gọi API
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor

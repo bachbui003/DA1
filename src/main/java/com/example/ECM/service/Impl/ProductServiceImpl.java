@@ -44,8 +44,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO createProduct(ProductDTO productDTO) {
-        Category category = categoryRepository.findById(productDTO.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Danh mục không tồn tại"));
+        Category category = categoryRepository.getReferenceById(productDTO.getCategoryId());
+
 
         Product product = new Product();
         product.setName(productDTO.getName());
@@ -62,7 +62,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Optional<ProductDTO> updateProduct(Long id, ProductDTO productDTO) {
         return productRepository.findById(id).map(existingProduct -> {
-            existingProduct.setStockQuantity(productDTO.getStockQuantity() != null ? productDTO.getStockQuantity() : 0);
+            Optional.ofNullable(productDTO.getStockQuantity()).ifPresent(existingProduct::setStockQuantity);
             existingProduct.setName(productDTO.getName());
             existingProduct.setDescription(productDTO.getDescription());
             existingProduct.setPrice(productDTO.getPrice());
@@ -90,6 +90,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void deleteProduct(Long id) {
+
+        if (!productRepository.existsById(id)) {
+            throw new RuntimeException("Sản phẩm không tồn tại!");
+        }
         productRepository.deleteById(id);
     }
 

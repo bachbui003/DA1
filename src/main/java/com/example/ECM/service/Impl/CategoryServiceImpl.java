@@ -32,6 +32,8 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         Category category = new Category();
         category.setName(categoryDTO.getName());
+        category.setIcon(categoryDTO.getIcon()); // Thêm icon
+
         return convertToDTO(categoryRepository.save(category));
     }
 
@@ -39,6 +41,8 @@ public class CategoryServiceImpl implements CategoryService {
     public Optional<CategoryDTO> updateCategory(Long id, CategoryDTO updatedCategory) {
         return categoryRepository.findById(id).map(category -> {
             category.setName(updatedCategory.getName());
+            category.setIcon(updatedCategory.getIcon()); // Cập nhật icon
+
             return convertToDTO(categoryRepository.save(category));
         });
     }
@@ -56,6 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
         return CategoryDTO.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .icon(category.getIcon()) // Thêm icon vào DTO
                 .build();
     }
 }
